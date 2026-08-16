@@ -32,9 +32,20 @@ st.set_page_config(
 # Custom css for modern design
 st.markdown("""
 <div class="app-background">
+    <!-- Neon ambient glows -->
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
+    
+    <!-- Floating finance-related background symbols -->
+    <div class="float-symbol sym-1">💵</div>
+    <div class="float-symbol sym-2">📈</div>
+    <div class="float-symbol sym-3">🔒</div>
+    <div class="float-symbol sym-4">₿</div>
+    <div class="float-symbol sym-5">💰</div>
+    <div class="float-symbol sym-6">📊</div>
+    <div class="float-symbol sym-7">💳</div>
+    <div class="float-symbol sym-8">💸</div>
 </div>
 
 <style>
@@ -61,6 +72,131 @@ st.markdown("""
     .stApp, div[data-testid="stApp"], .main {
         background-color: transparent !important;
         background: transparent !important;
+    }
+    
+    /* Floating finance symbols styling */
+    .float-symbol {
+        position: absolute;
+        filter: blur(1px);
+        user-select: none;
+        pointer-events: none;
+        transform-style: preserve-3d;
+    }
+    
+    .sym-1 {
+        top: 15%;
+        left: 10%;
+        font-size: 48px;
+        animation: float-swirl-1 22s infinite alternate ease-in-out;
+    }
+    
+    .sym-2 {
+        top: 25%;
+        right: 15%;
+        font-size: 56px;
+        animation: float-swirl-2 28s infinite alternate ease-in-out;
+    }
+    
+    .sym-3 {
+        bottom: 20%;
+        left: 20%;
+        font-size: 40px;
+        animation: float-swirl-3 24s infinite alternate ease-in-out;
+    }
+    
+    .sym-4 {
+        bottom: 15%;
+        right: 25%;
+        font-size: 52px;
+        animation: float-swirl-4 32s infinite alternate ease-in-out;
+    }
+    
+    .sym-5 {
+        top: 45%;
+        left: 80%;
+        font-size: 44px;
+        animation: float-swirl-1 26s infinite alternate ease-in-out;
+    }
+    
+    .sym-6 {
+        bottom: 40%;
+        left: 5%;
+        font-size: 36px;
+        animation: float-swirl-2 30s infinite alternate ease-in-out;
+    }
+    
+    .sym-7 {
+        top: 70%;
+        left: 50%;
+        font-size: 50px;
+        animation: float-swirl-3 25s infinite alternate ease-in-out;
+    }
+    
+    .sym-8 {
+        top: 5%;
+        left: 60%;
+        font-size: 42px;
+        animation: float-swirl-4 29s infinite alternate ease-in-out;
+    }
+    
+    @keyframes float-swirl-1 {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(1);
+            opacity: 0.04;
+        }
+        50% {
+            transform: translate(60px, -40px) rotate(180deg) scale(1.15);
+            opacity: 0.08;
+        }
+        100% {
+            transform: translate(-30px, 50px) rotate(360deg) scale(0.9);
+            opacity: 0.04;
+        }
+    }
+    
+    @keyframes float-swirl-2 {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(0.9);
+            opacity: 0.03;
+        }
+        50% {
+            transform: translate(-50px, 60px) rotate(-180deg) scale(1.1);
+            opacity: 0.07;
+        }
+        100% {
+            transform: translate(40px, -30px) rotate(-360deg) scale(0.9);
+            opacity: 0.03;
+        }
+    }
+    
+    @keyframes float-swirl-3 {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(1.1);
+            opacity: 0.05;
+        }
+        50% {
+            transform: translate(40px, 50px) rotate(120deg) scale(0.85);
+            opacity: 0.08;
+        }
+        100% {
+            transform: translate(-50px, -40px) rotate(240deg) scale(1.1);
+            opacity: 0.05;
+        }
+    }
+    
+    @keyframes float-swirl-4 {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(0.85);
+            opacity: 0.04;
+        }
+        50% {
+            transform: translate(-60px, -50px) rotate(-120deg) scale(1.15);
+            opacity: 0.07;
+        }
+        100% {
+            transform: translate(50px, 40px) rotate(-240deg) scale(0.85);
+            opacity: 0.04;
+        }
     }
     
     .orb {
