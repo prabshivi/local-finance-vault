@@ -74,9 +74,16 @@ def init_db(conn):
             type TEXT NOT NULL CHECK(type IN ('checking', 'credit', 'mortgage', 'savings')),
             institution TEXT,
             balance REAL DEFAULT 0.0,
-            currency TEXT DEFAULT 'USD'
+            currency TEXT DEFAULT 'USD',
+            entity TEXT NOT NULL CHECK(entity IN ('personal', 'incorporation')) DEFAULT 'personal'
         )
     ''')
+    
+    # Auto-migration: check if 'entity' column exists in 'accounts'
+    cursor.execute("PRAGMA table_info(accounts);")
+    columns = [col[1] for col in cursor.fetchall()]
+    if 'entity' not in columns:
+        cursor.execute("ALTER TABLE accounts ADD COLUMN entity TEXT NOT NULL DEFAULT 'personal' CHECK(entity IN ('personal', 'incorporation'));")
     
     # 3. Transactions Table
     cursor.execute('''
@@ -93,7 +100,7 @@ def init_db(conn):
             FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE,
             FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE SET NULL
         )
-    ''''')
+    ''')
     
     # 4. Rules Table
     cursor.execute('''
@@ -145,18 +152,18 @@ def init_db(conn):
 
 # --- Accounts CRUD ---
 
-def add_account(conn, name: str, type_: str, institution: str, balance: float, currency: str = "USD") -> int:
+def add_account(conn, name: str, type_: str, institution: str, balance: float, currency: str = "USD", entity: str = "personal") -> int:
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO accounts (name, type, institution, balance, currency)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (name, type_, institution, balance, currency))
+        INSERT INTO accounts (name, type, institution, balance, currency, entity)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (name, type_, institution, balance, currency, entity))
     conn.commit()
     return cursor.lastrowid
 
 def get_accounts(conn) -> list:
     cursor = conn.cursor()
-    cursor.execute('SELECT id, name, type, institution, balance, currency FROM accounts')
+    cursor.execute('SELECT id, name, type, institution, balance, currency, entity FROM accounts')
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -282,22 +289,28 @@ def get_transactions(conn, date_start: str = None, date_end: str = None, account
     if date_end:
         query += " AND t.date <= ?"
         params.append(date_end)
-    if account_ids:
-        query += f" AND t.account_id IN ({','.join(['?'] * len(account_ids))})"
-        params.extend(account_ids)
-    if category_ids:
-        # Support searching for uncategorized specifically (None or id matches)
-        has_none = None in category_ids or "None" in category_ids
-        valid_ids = [cid for cid in category_ids if cid not in (None, "None")]
-        if valid_ids:
-            placeholders = ','.join(['?'] * len(valid_ids))
-            if has_none:
-                query += f" AND (t.category_id IN ({placeholders}) OR t.category_id IS NULL)"
-            else:
-                query += f" AND t.category_id IN ({placeholders})"
-            params.extend(valid_ids)
-        elif has_none:
-            query += " AND t.category_id IS NULL"
+    if account_ids is not None:
+        if len(account_ids) == 0:
+            query += " AND 1=0"
+        else:
+            query += f" AND t.account_id IN ({','.join(['?'] * len(account_ids))})"
+            params.extend(account_ids)
+    if category_ids is not None:
+        if len(category_ids) == 0:
+            query += " AND 1=0"
+        else:
+            # Support searching for uncategorized specifically (None or id matches)
+            has_none = None in category_ids or "None" in category_ids
+            valid_ids = [cid for cid in category_ids if cid not in (None, "None")]
+            if valid_ids:
+                placeholders = ','.join(['?'] * len(valid_ids))
+                if has_none:
+                    query += f" AND (t.category_id IN ({placeholders}) OR t.category_id IS NULL)"
+                else:
+                    query += f" AND t.category_id IN ({placeholders})"
+                params.extend(valid_ids)
+            elif has_none:
+                query += " AND t.category_id IS NULL"
     if search_term:
         query += " AND (t.raw_description LIKE ? OR t.clean_merchant LIKE ?)"
         params.append(f"%{search_term}%")

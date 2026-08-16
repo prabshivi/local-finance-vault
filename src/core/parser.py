@@ -2,7 +2,7 @@ import csv
 import datetime
 import io
 import re
-from core.crypto import generate_transaction_hash
+from .crypto import generate_transaction_hash
 
 # Try importing pdfplumber and ofxparse (we also have a fallback custom OFX parser)
 pdfplumber_available = False

@@ -6,3 +6,8 @@ ofxparse
 cryptography
 # sqlcipher3-binary
 # Note: sqlcipher3 or pysqlcipher3 may be manually built if binary wheels are not compatible.
+argon2-cffi
+pytest
+pytest-cov
+bandit
+pip-audit

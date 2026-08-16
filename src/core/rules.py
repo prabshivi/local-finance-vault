@@ -1,5 +1,5 @@
 import re
-from core.db import get_rules
+from .db import get_rules
 
 def clean_merchant_name(raw_desc: str) -> str:
     """

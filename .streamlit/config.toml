@@ -1,0 +1,49 @@
+# shiviprabhakar.com Inspired Streamlit Theme Configuration
+
+[theme]
+base = "dark"
+primaryColor = "#00f2fe"
+backgroundColor = "#04020b"
+secondaryBackgroundColor = "#0e0921"
+codeBackgroundColor = "#04020b"
+textColor = "#f5f3ff"
+linkColor = "#4facfe"
+borderColor = "#1b153a"
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "16px"
+buttonRadius = "999px"
+
+# Typography
+font = "Outfit:https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "0.875rem"
+codeTextColor = "#f5f3ff"
+baseFontSize = 14
+baseFontWeight = 400
+headingFontSizes = ["36px", "30px", "24px", "20px", "16px", "14px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+linkUnderline = true
+
+# Categorical chart colors based on shiviprabhakar.com accent matrix
+chartCategoricalColors = ["#00f2fe", "#4facfe", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#f5f3ff"]
+grayColor = "#94a3b8"
+blueColor = "#00f2fe"
+greenColor = "#10b981"
+redColor = "#ef4444"
+yellowColor = "#f59e0b"
+orangeColor = "#f59e0b"
+violetColor = "#8b5cf6"
+
+dataframeBorderColor = "#1b153a"
+dataframeHeaderBackgroundColor = "#0e0921"
+
+[theme.sidebar]
+backgroundColor = "#0e0921"
+secondaryBackgroundColor = "#04020b"
+codeBackgroundColor = "#1b153a"
+textColor = "#f5f3ff"
+borderColor = "#1b153a"
+primaryColor = "#00f2fe"
+dataframeHeaderBackgroundColor = "#04020b"
+dataframeBorderColor = "#1b153a"
