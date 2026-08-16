@@ -1,0 +1,8 @@
+streamlit
+pandas
+plotly
+pdfplumber
+ofxparse
+cryptography
+# sqlcipher3-binary
+# Note: sqlcipher3 or pysqlcipher3 may be manually built if binary wheels are not compatible.
