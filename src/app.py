@@ -32,20 +32,20 @@ st.set_page_config(
 # Custom css for modern design
 st.markdown("""
 <div class="app-background">
-    <!-- Neon ambient glows -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    
-    <!-- Floating finance-related background symbols -->
-    <div class="float-symbol sym-1">💵</div>
-    <div class="float-symbol sym-2">📈</div>
-    <div class="float-symbol sym-3">🔒</div>
-    <div class="float-symbol sym-4">₿</div>
-    <div class="float-symbol sym-5">💰</div>
-    <div class="float-symbol sym-6">📊</div>
-    <div class="float-symbol sym-7">💳</div>
-    <div class="float-symbol sym-8">💸</div>
+<!-- Neon ambient glows -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- Floating finance-related background symbols -->
+<div class="float-symbol sym-1">💵</div>
+<div class="float-symbol sym-2">📈</div>
+<div class="float-symbol sym-3">🔒</div>
+<div class="float-symbol sym-4">₿</div>
+<div class="float-symbol sym-5">💰</div>
+<div class="float-symbol sym-6">📊</div>
+<div class="float-symbol sym-7">💳</div>
+<div class="float-symbol sym-8">💸</div>
 </div>
 
 <style>
