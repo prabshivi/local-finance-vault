@@ -8,16 +8,21 @@ All data is stored locally and encrypted at rest with AES-256 using SQLCipher. T
 
 ## Features
 
-### 1. 💼 Multi-Profile Financial Separation
+### 1. 📂 Streamlined Dashboard Overview
+* **Wealth Snapshot sub-tab**: Focuses on assets, liabilities, and overall net worth progression over time.
+* **Cash Flows sub-tab**: Focuses on period inflows, outflows, and savings rate trends.
+* **Spending Categories sub-tab**: Provides an actionable donut chart breakdown and a clean list of top spending categories.
+
+### 2. 💼 Multi-Profile Financial Separation
 * **Personal Profile**: Tracks full-time salary deposits from **Empire Life** along with personal accounts (Chase, Fidelity, Amex), utilities, auto loans, and mortgages.
 * **Incorporation Profile**: Tracks contract income from **Petline** along with business checking accounts, business cards, and corporate SaaS expenses.
 * **Combined Profile**: Aggregates metrics to show total combined net worth, aggregated cash flows, and combined expense structures.
 
-### 2. 🔗 Offline Bank Connection Portal
+### 3. 🔗 Offline Bank Connection Portal
 * A simulated, local-first connection portal to link bank accounts (Chase, Fidelity, Wells Fargo, Amex, TD Bank, Empire Life, Petline) directly from any tab.
 * Implements mock credentials verification, 2FA/MFA challenges, and instant local ledger synchronization.
 
-### 3. ✨ Premium Cyber-Cyan Glassmorphic UI
+### 4. ✨ Premium Cyber-Cyan Glassmorphic UI
 * Animated floating background gradient orbs and finance-related symbols (💵, 📈, 🔒, ₿, 💰) that translate, scale, and rotate dynamically.
 * Glassmorphism cards with electric cyan accents, hover vertical translation offsets, and neon box-shadow glows.
 * Dark-adapted high-contrast Plotly visualizations mapping cash flows and net worth history.
