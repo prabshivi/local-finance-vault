@@ -18,7 +18,7 @@ All data is stored locally and encrypted at rest with AES-256 using SQLCipher. T
 * Implements mock credentials verification, 2FA/MFA challenges, and instant local ledger synchronization.
 
 ### 3. ✨ Premium Cyber-Cyan Glassmorphic UI
-* Animated floating background gradient orbs that translate and drift dynamically.
+* Animated floating background gradient orbs and finance-related symbols (💵, 📈, 🔒, ₿, 💰) that translate, scale, and rotate dynamically.
 * Glassmorphism cards with electric cyan accents, hover vertical translation offsets, and neon box-shadow glows.
 * Dark-adapted high-contrast Plotly visualizations mapping cash flows and net worth history.
 
