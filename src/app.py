@@ -841,85 +841,95 @@ with tab_overview:
     nw_class = 'value-positive' if net_worth >= 0 else 'value-negative'
     sr_class = 'value-positive' if savings_rate >= 0 else 'value-negative'
     
-    # Render Cards in columns
-    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+    # 3. Render Sub-Tabs
+    sub_tab_wealth, sub_tab_cashflow, sub_tab_spending = st.tabs([
+        "💰 Wealth Snapshot", "📊 Cash Flows", "🍕 Spending Categories"
+    ])
     
-    with m_col1:
-        st.markdown("""
-        <div class="metric-card">
-            <div class="metric-title">Net Worth</div>
-            <div class="metric-value {nw_class}">${net_worth:,.2f}</div>
-        </div>
-        """.format(nw_class=nw_class, net_worth=net_worth), unsafe_allow_html=True)
-        
-    with m_col2:
-        st.markdown("""
-        <div class="metric-card">
-            <div class="metric-title">Period Inflow</div>
-            <div class="metric-value value-positive">${monthly_inflow:,.2f}</div>
-        </div>
-        """.format(monthly_inflow=monthly_inflow), unsafe_allow_html=True)
-        
-    with m_col3:
-        st.markdown("""
-        <div class="metric-card">
-            <div class="metric-title">Period Outflow</div>
-            <div class="metric-value value-negative">${monthly_outflow:,.2f}</div>
-        </div>
-        """.format(monthly_outflow=monthly_outflow), unsafe_allow_html=True)
-        
-    with m_col4:
-        st.markdown("""
-        <div class="metric-card">
-            <div class="metric-title">Savings Rate</div>
-            <div class="metric-value {sr_class}">{savings_rate:.1f}%</div>
-        </div>
-        """.format(sr_class=sr_class, savings_rate=savings_rate), unsafe_allow_html=True)
-        
-    # 3. Render Visualizations
-    st.divider()
-    
-    v_col1, v_col2 = st.columns(2)
-    
-    with v_col1:
-        # Category Spending Donut Chart
-        # Select all debit transactions in date range (excluding transfer categories like savings/investments)
-        spending_txs = [tx for tx in filtered_txs if tx['is_debit'] == 1 and tx['category_name'] not in ('Savings', 'Interest', 'Payroll')]
-        
-        if spending_txs:
-            df_spend = pd.DataFrame(spending_txs)
-            df_grouped = df_spend.groupby('category_name')['amount'].sum().reset_index()
+    # --- SUB-TAB 1: WEALTH SNAPSHOT ---
+    with sub_tab_wealth:
+        # Metrics Row
+        col_w1, col_w2, col_w3 = st.columns(3)
+        with col_w1:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Net Worth</div>
+                <div class="metric-value {nw_class}">${net_worth:,.2f}</div>
+            </div>
+            """.format(nw_class=nw_class, net_worth=net_worth), unsafe_allow_html=True)
+        with col_w2:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Total Assets</div>
+                <div class="metric-value value-positive">${assets_val:,.2f}</div>
+            </div>
+            """.format(assets_val=assets_val), unsafe_allow_html=True)
+        with col_w3:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Total Liabilities</div>
+                <div class="metric-value value-negative">${liabilities_val:,.2f}</div>
+            </div>
+            """.format(liabilities_val=liabilities_val), unsafe_allow_html=True)
             
-            fig_donut = px.pie(
-                df_grouped,
-                values='amount',
-                names='category_name',
-                hole=0.5,
-                title="Spending Breakdown by Category",
-                color_discrete_sequence=["#00f2fe", "#4facfe", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#f5f3ff"]
+        # Net Worth Progression Chart
+        df_nw = get_historical_net_worth_data(active_accounts, all_filtered_txs)
+        if not df_nw.empty:
+            fig_nw = px.area(
+                df_nw,
+                x='date',
+                y='net_worth',
+                title="Historical Net Worth Trend"
             )
-            fig_donut.update_layout(
+            fig_nw.update_traces(
+                line_color='#00f2fe',
+                line_width=3,
+                fillcolor='rgba(0, 242, 254, 0.08)'
+            )
+            fig_nw.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font_color='#f5f3ff',
-                margin=dict(t=50, b=10, l=10, r=10),
-                legend=dict(font=dict(size=12))
+                xaxis=dict(gridcolor='#1b153a', title="Date"),
+                yaxis=dict(gridcolor='#1b153a', title="Net Worth ($)"),
+                margin=dict(t=40, b=10, l=10, r=10)
             )
-            st.plotly_chart(fig_donut, width="stretch")
+            st.plotly_chart(fig_nw, width="stretch")
         else:
-            st.info("No spending transactions found for selected filter criteria.")
+            st.info("Insufficient account history to construct Net Worth trajectory.")
             
-    with v_col2:
-        # Cash Flow Trend Chart (Grouped by Month)
+    # --- SUB-TAB 2: CASH FLOWS ---
+    with sub_tab_cashflow:
+        # Metrics Row
+        col_c1, col_c2, col_c3 = st.columns(3)
+        with col_c1:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Period Inflow</div>
+                <div class="metric-value value-positive">${monthly_inflow:,.2f}</div>
+            </div>
+            """.format(monthly_inflow=monthly_inflow), unsafe_allow_html=True)
+        with col_c2:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Period Outflow</div>
+                <div class="metric-value value-negative">${monthly_outflow:,.2f}</div>
+            </div>
+            """.format(monthly_outflow=monthly_outflow), unsafe_allow_html=True)
+        with col_c3:
+            st.markdown("""
+            <div class="metric-card">
+                <div class="metric-title">Savings Rate</div>
+                <div class="metric-value {sr_class}">{savings_rate:.1f}%</div>
+            </div>
+            """.format(sr_class=sr_class, savings_rate=savings_rate), unsafe_allow_html=True)
+            
+        # Cash Flow Trend Chart
         if filtered_txs:
             df_cf = pd.DataFrame(filtered_txs)
-            # Create a Month-Year column
             df_cf['month'] = pd.to_datetime(df_cf['date']).dt.strftime('%Y-%m')
-            
-            # Divide into Inflows and Outflows
             df_cf['inflow'] = df_cf.apply(lambda r: r['amount'] if r['is_debit'] == 0 else 0, axis=1)
             df_cf['outflow'] = df_cf.apply(lambda r: r['amount'] if r['is_debit'] == 1 else 0, axis=1)
-            
             df_trend = df_cf.groupby('month')[['inflow', 'outflow']].sum().reset_index()
             df_trend = df_trend.sort_values('month')
             
@@ -938,7 +948,7 @@ with tab_overview:
             ))
             fig_cf.update_layout(
                 barmode='group',
-                title="Monthly Cash Flow Trend",
+                title="Monthly Inflows vs. Outflows",
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font_color='#f5f3ff',
@@ -950,35 +960,47 @@ with tab_overview:
         else:
             st.info("No trend data available.")
             
-    st.divider()
-    
-    # Net Worth progression chart
-    st.subheader("Net Worth Progression Over Time")
-    df_nw = get_historical_net_worth_data(active_accounts, all_filtered_txs)
-    
-    if not df_nw.empty:
-        fig_nw = px.area(
-            df_nw,
-            x='date',
-            y='net_worth',
-            title="Total Assets vs. Liabilities Valuation Line"
-        )
-        fig_nw.update_traces(
-            line_color='#00f2fe',
-            line_width=3,
-            fillcolor='rgba(0, 242, 254, 0.08)'
-        )
-        fig_nw.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color='#f5f3ff',
-            xaxis=dict(gridcolor='#1b153a', title="Date"),
-            yaxis=dict(gridcolor='#1b153a', title="Net Worth ($)"),
-            margin=dict(t=40, b=10, l=10, r=10)
-        )
-        st.plotly_chart(fig_nw, width="stretch")
-    else:
-        st.info("Insufficient account history to construct Net Worth trajectory.")
+    # --- SUB-TAB 3: SPENDING CATEGORIES ---
+    with sub_tab_spending:
+        spending_txs = [tx for tx in filtered_txs if tx['is_debit'] == 1 and tx['category_name'] not in ('Savings', 'Interest', 'Payroll')]
+        
+        if spending_txs:
+            df_spend = pd.DataFrame(spending_txs)
+            df_grouped = df_spend.groupby('category_name')['amount'].sum().reset_index()
+            df_grouped = df_grouped.sort_values('amount', ascending=False)
+            
+            col_chart, col_list = st.columns([6, 6])
+            
+            with col_chart:
+                fig_donut = px.pie(
+                    df_grouped,
+                    values='amount',
+                    names='category_name',
+                    hole=0.5,
+                    title="Spending Breakdown by Category",
+                    color_discrete_sequence=["#00f2fe", "#4facfe", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#f5f3ff"]
+                )
+                fig_donut.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font_color='#f5f3ff',
+                    margin=dict(t=50, b=10, l=10, r=10),
+                    legend=dict(font=dict(size=12))
+                )
+                st.plotly_chart(fig_donut, width="stretch")
+                
+            with col_list:
+                st.markdown("### Top Spending Categories")
+                df_grouped_show = df_grouped.copy()
+                df_grouped_show['amount'] = df_grouped_show['amount'].map('${:,.2f}'.format)
+                df_grouped_show.columns = ['Category', 'Total Spent']
+                st.dataframe(
+                    df_grouped_show,
+                    hide_index=True,
+                    width="stretch"
+                )
+        else:
+            st.info("No spending transactions found for selected filter criteria.")
 
 
 # ----------------- TAB 2: TRANSACTION LEDGER -----------------
