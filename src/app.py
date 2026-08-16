@@ -1,3 +1,6 @@
+from core.security import enforce_network_isolation
+enforce_network_isolation()
+
 import datetime
 import io
 import os
@@ -52,6 +55,12 @@ st.markdown("""
         z-index: -999;
         overflow: hidden;
         pointer-events: none;
+    }
+    
+    /* Make Streamlit application containers transparent to reveal the floating background */
+    .stApp, div[data-testid="stApp"], .main {
+        background-color: transparent !important;
+        background: transparent !important;
     }
     
     .orb {

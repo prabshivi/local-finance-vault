@@ -2,7 +2,36 @@ import csv
 import datetime
 import io
 import re
-from .crypto import generate_transaction_hash
+from core.crypto import generate_transaction_hash
+from core.security import mask_pii, sanitize_text
+
+# Compliance limits under OSFI B-13 DoS guidelines
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB
+MAX_PAGE_COUNT = 100
+
+def validate_file_header(file_name: str, file_bytes: bytes) -> bool:
+    """
+    Validates file magic-bytes/headers against MIME spoofing.
+    - PDF: Starts with %PDF
+    - CSV: Decodable text with no NULL bytes
+    - OFX/QFX: Contains OFX header tags in the first 500 bytes
+    """
+    file_lower = file_name.lower()
+    if file_lower.endswith('.pdf'):
+        return file_bytes.startswith(b'%PDF')
+    elif file_lower.endswith('.csv'):
+        try:
+            content = file_bytes.decode('utf-8', errors='strict')
+            return '\x00' not in content
+        except UnicodeDecodeError:
+            return False
+    elif file_lower.endswith(('.ofx', '.qfx')):
+        try:
+            header = file_bytes[:500].decode('utf-8', errors='ignore')
+            return any(tag in header for tag in ('OFXHEADER', '<OFX', '<?xml'))
+        except Exception:
+            return False
+    return False
 
 # Try importing pdfplumber and ofxparse (we also have a fallback custom OFX parser)
 pdfplumber_available = False
@@ -246,6 +275,8 @@ def parse_pdf(pdf_file_path_or_bytes) -> list:
     
     # Try structured table extraction first
     with pdfplumber.open(pdf_file_path_or_bytes) as pdf:
+        if len(pdf.pages) > MAX_PAGE_COUNT:
+            raise ValueError(f"PDF page count ({len(pdf.pages)}) exceeds the maximum allowed limit of {MAX_PAGE_COUNT} pages.")
         for page in pdf.pages:
             tables = page.extract_tables()
             for table in tables:
@@ -334,9 +365,17 @@ def parse_pdf_text_fallback(text: str) -> list:
 
 def normalize_statement(file_name: str, file_content_bytes: bytes, account_id: int) -> list:
     """
-    Determines file type, parses it, and adds SHA-256 deduplication signatures.
-    Returns a list of standardized transactions ready for staging.
+    Determines file type, validates magic bytes and limits, parses it, and adds SHA-256 signatures.
+    Returns a list of standardized, sanitized, and masked transactions ready for staging.
     """
+    # Denial of Service limit checks
+    if len(file_content_bytes) > MAX_FILE_SIZE:
+        raise ValueError(f"Security Violation: File size ({len(file_content_bytes)} bytes) exceeds the maximum allowed limit of {MAX_FILE_SIZE} bytes.")
+
+    # MIME sniffing check / Magic bytes validation
+    if not validate_file_header(file_name, file_content_bytes):
+        raise ValueError("Security Violation: File headers do not match the expected format of the selected file type.")
+
     file_lower = file_name.lower()
     raw_txs = []
     
@@ -354,7 +393,7 @@ def normalize_statement(file_name: str, file_content_bytes: bytes, account_id: i
     else:
         raise ValueError("Unsupported file extension. Please upload a PDF, CSV, or OFX file.")
         
-    # Standardize description and compute hash signatures
+    # Standardize description, clean and mask input values, and compute hash signatures
     normalized_txs = []
     for tx in raw_txs:
         date = tx['date']
@@ -362,14 +401,18 @@ def normalize_statement(file_name: str, file_content_bytes: bytes, account_id: i
         amount = tx['amount']
         is_debit = tx['is_debit']
         
+        # Strip injection strings, control chars, and mask sensitive PII (SINs, CC cards, bank accounts)
+        sanitized_desc = sanitize_text(raw_desc)
+        masked_desc = mask_pii(sanitized_desc)
+        
         # Generate the cryptographic deduplication signature
-        sig = generate_transaction_hash(date, raw_desc, amount, account_id)
+        sig = generate_transaction_hash(date, masked_desc, amount, account_id)
         
         normalized_txs.append({
             'account_id': account_id,
             'date': date,
-            'raw_description': raw_desc,
-            'clean_merchant': raw_desc.strip(),  # default clean to raw description
+            'raw_description': masked_desc,
+            'clean_merchant': masked_desc.strip(),  # default clean to raw description
             'category_id': None,                 # will be assigned by rules engine
             'amount': amount,
             'is_debit': is_debit,

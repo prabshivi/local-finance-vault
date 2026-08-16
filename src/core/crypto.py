@@ -1,18 +1,16 @@
 import hashlib
 import os
+from core.security import derive_vault_key
 
-def derive_key(passphrase: str, salt: bytes = None, iterations: int = 100000) -> bytes:
+def derive_key(passphrase: str, salt: bytes = None, iterations: int = 250000) -> bytes:
     """
-    Derives a 256-bit key from a passphrase using PBKDF2-HMAC-SHA256.
-    Uses a standard static salt for deterministic derivation when decrypting the database file
-    unless a specific salt is stored outside the database.
+    Derives a 256-bit key from a passphrase. Wraps the compliance secure key derivation function
+    to preserve legcay compatibility.
     """
     if salt is None:
-        # A static salt for the SQLCipher key derivation fallback.
-        # In SQLCipher, the library does its own internal key derivation using PBKDF2.
-        # But if we pass a derived key directly, we use this static salt.
-        salt = b"local_finance_salt_sec_vector_99"
-    return hashlib.pbkdf2_hmac("sha256", passphrase.encode("utf-8"), salt, iterations, dklen=32)
+        # legacy static salt, padded to 32 bytes for the new zero-trust controls
+        salt = b"local_finance_salt_sec_vector_99".ljust(32, b"\x00")[:32]
+    return derive_vault_key(passphrase, salt)
 
 def generate_transaction_hash(date: str, raw_description: str, amount: float, account_id: int) -> str:
     """

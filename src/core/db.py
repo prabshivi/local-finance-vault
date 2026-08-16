@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from core.security import get_or_create_salt, derive_vault_key
 
 # Try importing SQLCipher library wrappers.
 # Fallback to standard sqlite3 if SQLCipher is not installed or compiled.
@@ -19,7 +20,7 @@ except ImportError:
 def connect_db(db_path: str, passphrase: str = ""):
     """
     Connect to the SQLite database.
-    If SQLCipher is available, decrypt the database using the passphrase.
+    If SQLCipher is available, decrypt the database using a derived key.
     Otherwise, fall back to standard sqlite3 (unencrypted).
     
     Returns:
@@ -28,19 +29,40 @@ def connect_db(db_path: str, passphrase: str = ""):
     is_encrypted = (sqlcipher is not None)
     
     if is_encrypted and passphrase:
+        key_bytes = None
         try:
+            # Retrieve or generate the cryptographically random salt
+            salt_path = db_path + ".salt"
+            salt = get_or_create_salt(salt_path)
+            
+            # Derive vault key
+            derived_key = derive_vault_key(passphrase, salt)
+            key_bytes = bytearray(derived_key)
+            key_hex = key_bytes.hex()
+            
             # Connect using the SQLCipher wrapper
             conn = sqlcipher.connect(db_path)
-            # Escape single quotes in the passphrase for the PRAGMA key statement
-            escaped_key = passphrase.replace("'", "''")
-            conn.execute(f"PRAGMA key = '{escaped_key}'")
+            conn.execute(f"PRAGMA key = \"x'{key_hex}'\"")
+            
             # Verify key correctness by reading from sqlite_master
             conn.execute("SELECT count(*) FROM sqlite_master;")
             # Enable foreign keys
             conn.execute("PRAGMA foreign_keys = ON;")
+            
+            # Memory safety cleanup
+            for i in range(len(key_bytes)):
+                key_bytes[i] = 0
+            del key_hex
+            del key_bytes
+            
             return conn, True, None
-        except Exception as e:
-            return None, True, f"Failed to decrypt database: {str(e)}"
+        except Exception:
+            # Ensure key is zeroed out in memory even on failure
+            if key_bytes is not None:
+                for i in range(len(key_bytes)):
+                    key_bytes[i] = 0
+            # OSFI B-13 compliance: Do not propagate raw SQLite/SQLCipher error stack trace
+            return None, True, "Failed to decrypt database: Invalid passphrase or database corruption."
     else:
         # Fallback to standard sqlite3
         try:
