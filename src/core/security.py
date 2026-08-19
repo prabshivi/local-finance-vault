@@ -174,3 +174,61 @@ def secure_delete_file(file_path: str):
                 os.remove(file_path)
             except Exception:
                 pass
+
+import base64
+from cryptography.fernet import Fernet
+
+def encrypt_master_key(master_key: bytes, user_passphrase: str, salt: bytes) -> str:
+    """
+    Encrypts the master database key using the derived user key with Fernet.
+    """
+    derived_key = derive_vault_key(user_passphrase, salt)
+    fernet_key = base64.urlsafe_b64encode(derived_key)
+    f = Fernet(fernet_key)
+    return f.encrypt(master_key).decode('utf-8')
+
+def decrypt_master_key(encrypted_master_key_str: str, user_passphrase: str, salt: bytes) -> bytes:
+    """
+    Decrypts the master database key using the derived user key.
+    """
+    derived_key = derive_vault_key(user_passphrase, salt)
+    fernet_key = base64.urlsafe_b64encode(derived_key)
+    f = Fernet(fernet_key)
+    return f.decrypt(encrypted_master_key_str.encode('utf-8'))
+
+def hash_password(password: str, salt: bytes = None) -> tuple[str, str]:
+    """
+    Hashes a password with pbkdf2_hmac_sha256 or argon2.
+    """
+    if salt is None:
+        salt = os.urandom(16)
+    try:
+        from argon2 import PasswordHasher
+        ph = PasswordHasher()
+        h = ph.hash(password)
+        return h, ""
+    except ImportError:
+        h = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
+        return h.hex(), salt.hex()
+
+def verify_password(password: str, stored_hash: str, salt_hex: str) -> bool:
+    """
+    Verifies a password against its stored hash.
+    """
+    try:
+        from argon2 import PasswordHasher
+        from argon2.exceptions import VerifyMismatchError
+        ph = PasswordHasher()
+        try:
+            ph.verify(stored_hash, password)
+            return True
+        except VerifyMismatchError:
+            return False
+        except Exception:
+            pass
+    except ImportError:
+        pass
+        
+    salt = bytes.fromhex(salt_hex) if salt_hex else b""
+    h = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
+    return h.hex() == stored_hash

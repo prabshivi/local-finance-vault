@@ -10,6 +10,8 @@ jobs:
   validate:
     name: Run Test Suite
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
 
     steps:
     - name: Checkout Repository

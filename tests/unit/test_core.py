@@ -28,8 +28,9 @@ def test_db_encryption():
     passphrase = "test_passphrase_99"
     
     # Cleanup any existing test DB
-    if os.path.exists(db_path):
-        os.remove(db_path)
+    for path in (db_path, db_path + "_keys.json", db_path + ".salt"):
+        if os.path.exists(path):
+            os.remove(path)
         
     # Connect and init schema
     conn, is_encrypted, err = connect_db(db_path, passphrase)
@@ -89,8 +90,9 @@ def test_db_encryption():
         assert conn_wrong is None, "Wrong passphrase should not allow database connection."
         
     # Clean up test database
-    if os.path.exists(db_path):
-        os.remove(db_path)
+    for path in (db_path, db_path + "_keys.json", db_path + ".salt"):
+        if os.path.exists(path):
+            os.remove(path)
 
 def test_parser():
     # Parse date tests

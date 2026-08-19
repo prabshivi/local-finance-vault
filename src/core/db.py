@@ -1,6 +1,10 @@
 import os
 import sqlite3
-from core.security import get_or_create_salt, derive_vault_key
+import json
+from core.security import (
+    get_or_create_salt, derive_vault_key, hash_password, verify_password,
+    encrypt_master_key, decrypt_master_key
+)
 
 # Try importing SQLCipher library wrappers.
 # Fallback to standard sqlite3 if SQLCipher is not installed or compiled.
@@ -17,51 +21,86 @@ except ImportError:
     except ImportError:
         pass
 
-def connect_db(db_path: str, passphrase: str = ""):
+def connect_db(db_path: str, passphrase: str = "", username: str = "admin"):
     """
     Connect to the SQLite database.
-    If SQLCipher is available, decrypt the database using a derived key.
+    If SQLCipher is available, decrypt the database using a derived key from vault_keys.json.
     Otherwise, fall back to standard sqlite3 (unencrypted).
     
     Returns:
         (conn, is_encrypted, error_message)
     """
     is_encrypted = (sqlcipher is not None)
+    keys_path = db_path + "_keys.json"
+    salt_path = db_path + ".salt"
+    
+    # Ensure salt exists
+    salt = get_or_create_salt(salt_path)
     
     if is_encrypted and passphrase:
-        key_bytes = None
-        try:
-            # Retrieve or generate the cryptographically random salt
-            salt_path = db_path + ".salt"
-            salt = get_or_create_salt(salt_path)
-            
+        # If keys configuration file is missing, initialize it
+        if not os.path.exists(keys_path):
             # Derive vault key
             derived_key = derive_vault_key(passphrase, salt)
-            key_bytes = bytearray(derived_key)
-            key_hex = key_bytes.hex()
             
-            # Connect using the SQLCipher wrapper
+            # Check if database already exists and has content
+            if os.path.exists(db_path) and os.path.getsize(db_path) > 0:
+                # Attempt connection using derived key directly (legacy mode)
+                try:
+                    conn = sqlcipher.connect(db_path)
+                    conn.execute(f"PRAGMA key = \"x'{derived_key.hex()}'\"")
+                    conn.execute("SELECT count(*) FROM sqlite_master;")
+                    conn.close()
+                    # Success! Migrate legacy key to be the master key
+                    master_key = derived_key
+                except Exception:
+                    # Connection failed or not a legacy database. Generate new master key.
+                    master_key = os.urandom(32)
+            else:
+                # New database
+                master_key = os.urandom(32)
+                
+            try:
+                encrypted_key_str = encrypt_master_key(master_key, passphrase, salt)
+                with open(keys_path, 'w') as f:
+                    json.dump({
+                        username: {
+                            "encrypted_key": encrypted_key_str,
+                            "salt_hex": salt.hex()
+                        }
+                    }, f)
+            except Exception as e:
+                return None, True, f"Failed to initialize vault keys: {str(e)}"
+        
+        # Load keys
+        try:
+            with open(keys_path, 'r') as f:
+                keys_data = json.load(f)
+        except Exception as e:
+            return None, True, f"Failed to load vault keys config: {str(e)}"
+            
+        if username not in keys_data:
+            return None, True, f"Unauthorized: User '{username}' does not have access to this vault."
+            
+        user_info = keys_data[username]
+        encrypted_key_str = user_info["encrypted_key"]
+        
+        # Decrypt master key using user password
+        try:
+            master_key = decrypt_master_key(encrypted_key_str, passphrase, salt)
+        except Exception:
+            return None, True, "Failed to decrypt database: Invalid master passphrase."
+            
+        # Use decrypted master key to open SQLCipher
+        key_hex = master_key.hex()
+        try:
             conn = sqlcipher.connect(db_path)
             conn.execute(f"PRAGMA key = \"x'{key_hex}'\"")
-            
-            # Verify key correctness by reading from sqlite_master
+            # Verify key correctness
             conn.execute("SELECT count(*) FROM sqlite_master;")
-            # Enable foreign keys
             conn.execute("PRAGMA foreign_keys = ON;")
-            
-            # Memory safety cleanup
-            for i in range(len(key_bytes)):
-                key_bytes[i] = 0
-            del key_hex
-            del key_bytes
-            
             return conn, True, None
         except Exception:
-            # Ensure key is zeroed out in memory even on failure
-            if key_bytes is not None:
-                for i in range(len(key_bytes)):
-                    key_bytes[i] = 0
-            # OSFI B-13 compliance: Do not propagate raw SQLite/SQLCipher error stack trace
             return None, True, "Failed to decrypt database: Invalid passphrase or database corruption."
     else:
         # Fallback to standard sqlite3

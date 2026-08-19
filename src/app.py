@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import sqlite3
 
 from core.crypto import generate_transaction_hash
 from core.db import (
@@ -758,15 +759,26 @@ st.sidebar.divider()
 # Database Export & Backup
 st.sidebar.markdown("### Backup & Export")
 try:
-    with open("vault.db", "rb") as db_file:
-        db_bytes = db_file.read()
-        st.sidebar.download_button(
-            label="Backup Encrypted DB File 📥",
-            data=db_bytes,
-            file_name="vault_backup.db",
-            mime="application/octet-stream",
-            width="stretch"
-        )
+    import io
+    import zipfile
+    
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        if os.path.exists("vault.db"):
+            zf.write("vault.db", "vault.db")
+        if os.path.exists("vault.db_keys.json"):
+            zf.write("vault.db_keys.json", "vault.db_keys.json")
+        if os.path.exists("vault.db.salt"):
+            zf.write("vault.db.salt", "vault.db.salt")
+            
+    zip_bytes = zip_buffer.getvalue()
+    st.sidebar.download_button(
+        label="Backup Vault Archive (ZIP) 📥",
+        data=zip_bytes,
+        file_name="vault_backup.zip",
+        mime="application/zip",
+        width="stretch"
+    )
 except Exception:
     st.sidebar.error("Database backup unavailable.")
 
@@ -1529,10 +1541,13 @@ with tab_rules:
                 if not new_rule_pattern:
                     st.error("Regex pattern is required.")
                 else:
-                    target_cat_id = next(c['id'] for c in cats if c['name'] == new_rule_cat)
-                    add_rule(conn, new_rule_pattern, target_cat_id, new_rule_priority)
-                    st.success("Rule added successfully.")
-                    st.rerun()
+                    try:
+                        target_cat_id = next(c['id'] for c in cats if c['name'] == new_rule_cat)
+                        add_rule(conn, new_rule_pattern, target_cat_id, new_rule_priority)
+                        st.success("Rule added successfully.")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("A rule with this regex pattern already exists.")
                     
     with st.expander("Delete Existing Rule"):
         if not rules_list:
